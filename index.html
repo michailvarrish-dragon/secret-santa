@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secret Santa 🎅</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <h1>🎄 Secret Santa 🎁</h1>
+
+  <div id="step1"></div>
+
+  <div id="step2" style="display:none;"></div>
+
+  <div id="step3" style="display:none;">
+    <div id="result"></div>
+    <br>
+    <button onclick="window.location.reload()">🔄 Ricomincia</button>
+  </div>
+
+  <div id="admin-container" style="margin-top: 100px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.3); font-size: 0.8em; text-align: center; opacity: 0.8;">
+    <h3 style="font-size: 1.2em; margin-bottom: 10px;">Admin Mode</h3>
+    <input type="password" id="adminPassword" placeholder="Inserisci password" style="padding: 5px;">
+    <button onclick="checkAdmin()" style="padding: 5px 10px;">Accedi</button>
+    
+    <div id="adminPanel" style="display:none; margin-top: 15px;">
+      <div id="allPairs" style="text-align: left; display: inline-block;"></div>
+      <br>
+      <button onclick="downloadCSV()" style="margin-top: 10px;">Scarica CSV 📥</button>
+    </div>
+  </div>
+
+  <canvas id="snow"></canvas>
+
+  <script src="script.js"></script>
+
+</body>
+</html>
