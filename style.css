@@ -1,0 +1,88 @@
+body {
+  font-family: 'Segoe UI', sans-serif;
+  /* Background natalizio */
+  background: linear-gradient(135deg, #d32f2f, #388e3c);
+  min-height: 100vh; 
+  color: #fff;
+  text-align: center;
+  padding: 20px;
+  margin: 0;
+  /* Importante: overflow hidden rimosso per permettere lo scroll verso l'admin */
+}
+
+h1 {
+  font-size: 2.5em;
+  margin-bottom: 20px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+h2, h3 {
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+}
+
+/* Stile per i menu a tendina e password */
+select, input[type=password] {
+  font-size: 1em;
+  padding: 10px;
+  margin: 10px;
+  border-radius: 8px; /* Arrotondati */
+  border: none;
+  background-color: rgba(255, 255, 255, 0.95);
+  color: #333;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+button {
+  background-color: #fff;
+  color: #d32f2f;
+  font-weight: bold;
+  font-size: 1.1em;
+  padding: 10px 25px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 10px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  transition: transform 0.1s, background-color 0.2s;
+}
+
+button:hover {
+  background-color: #fbc02d; /* Giallo oro */
+  color: #fff;
+  transform: scale(1.05);
+}
+
+button:active {
+  transform: scale(0.95);
+}
+
+#result, #adminPanel {
+  margin-top: 20px;
+  font-size: 1.2em;
+}
+
+/* Stile lista Admin */
+#allPairs ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+#allPairs li {
+  background: rgba(0, 0, 0, 0.2);
+  margin: 5px auto;
+  padding: 8px;
+  border-radius: 5px;
+  max-width: 400px;
+}
+
+/* Canvas per la neve */
+canvas#snow {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+}
