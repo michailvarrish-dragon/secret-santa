@@ -73,18 +73,24 @@ document.addEventListener('DOMContentLoaded', () => {
         selectPlayerMenu.addEventListener('change', (event) => {
             const selectedNick = event.target.value;
             if (selectedNick) {
-                checkIfPlayerAlreadyPlayed(selectedNick);
+                // MODIFICA: Non controlliamo più qui se il player ha giocato.
+                // Passiamo direttamente alla scelta personaggio.
+                showCharacters(selectedNick);
             }
         });
     }
 
-    function checkIfPlayerAlreadyPlayed(nick) {
-        db.ref('pairs/' + nick).once('value', (snapshot) => {
+    // Funzione NUOVA: controlla se il PERSONAGGIO specifico ha già giocato
+    function checkCharacterStatus(player, charName) {
+        // La chiave nel DB ora è il nome del personaggio, non del player
+        db.ref('pairs/' + charName).once('value', (snapshot) => {
             if (snapshot.exists()) {
+                // Questo personaggio ha già un abbinamento
                 const savedReceiver = snapshot.val();
-                showResult(nick, savedReceiver, true);
+                showResult(charName, savedReceiver, true);
             } else {
-                showCharacters(nick);
+                // Nessun abbinamento, procediamo a crearne uno nuovo
+                generatePairingOnline(player, charName);
             }
         });
     }
@@ -125,7 +131,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (selectedChar === "") {
                 alert("Per favore, seleziona un personaggio!");
             } else {
-                generatePairingOnline(nick, selectedChar);
+                // MODIFICA: Qui scatta il controllo sul personaggio
+                checkCharacterStatus(nick, selectedChar);
             }
         };
         step2.appendChild(confirmBtn);
@@ -153,25 +160,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const receiver = receivers[Math.floor(Math.random() * receivers.length)];
 
-            db.ref('pairs/' + giverPlayer).set(receiver, (error) => {
+            // MODIFICA FONDAMENTALE: Salviamo usando il nome del PERSONAGGIO come chiave
+            db.ref('pairs/' + giverChar).set(receiver, (error) => {
                 if (error) {
                     alert('Errore di connessione!');
                 } else {
-                    showResult(giverPlayer, receiver, false);
+                    showResult(giverChar, receiver, false);
                 }
             });
         });
     }
 
-    function showResult(giver, receiver, isReplay) {
+    function showResult(giverName, receiver, isReplay) {
         step1.style.display = 'none';
         step2.style.display = 'none';
         step3.style.display = 'block';
         step3.style.textAlign = 'center'; 
 
-        let msg = isReplay ? "Avevi già effettuato l'estrazione! 🎅" : "Nuova estrazione confermata! 🎅";
+        let msg = isReplay ? "Avevi già effettuato l'estrazione con questo PG! 🎅" : "Nuova estrazione confermata! 🎅";
         
-        resultDiv.innerHTML = `<p style="font-size:0.9em">${msg}</p>Il destinatario per <strong>${giver}</strong> è:<br><br><span style="font-size: 2em; color: white; text-shadow: 2px 2px 4px #000000;">${receiver}</span>`;
+        // Qui 'giverName' sarà il nome del personaggio (es. Charlie), non del player
+        resultDiv.innerHTML = `<p style="font-size:0.9em">${msg}</p>Il destinatario per <strong>${giverName}</strong> è:<br><br><span style="font-size: 2em; color: white; text-shadow: 2px 2px 4px #000000;">${receiver}</span>`;
     }
 
     // --- FUNZIONI ADMIN ---
@@ -188,6 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showAllPairsFromDB() {
         db.ref('pairs').on('value', (snapshot) => {
             const pairs = snapshot.val() || {};
+            // Ora la lista mostrerà: "Nome Personaggio -> Nome Destinatario"
             const div = document.getElementById('allPairs');
             div.innerHTML = '<ul>' + Object.entries(pairs).map(([giver, receiver]) => `<li>${giver} → ${receiver}</li>`).join('') + '</ul>';
         });
@@ -204,8 +214,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.downloadCSV = function () {
         db.ref('pairs').once('value', (snapshot) => {
             const pairs = snapshot.val() || {};
-            if (Object.keys(pairs).length < Object.keys(players).length) {
-                alert('Attenzione: Non tutti hanno ancora giocato!');
+            // Nota: Questo controllo controlla se TUTTI i personaggi hanno giocato
+            if (Object.keys(pairs).length < allCharacters.length) {
+                alert('Attenzione: Non tutti i personaggi hanno ancora giocato!');
             }
             let csv = 'Giver,Receiver\n';
             for (const [giver, receiver] of Object.entries(pairs)) {
