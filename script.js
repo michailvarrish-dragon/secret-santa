@@ -1,8 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     
     // --- 1. CONFIGURAZIONE FIREBASE ---
-    
-    // I tuoi dati di configurazione (formattati corretti per il web classico)
     const firebaseConfig = {
         apiKey: "AIzaSyDtQSvMYX6lt4Px8ZhaCaFTSbGhLfi7dHk",
         authDomain: "secretsantagdr.firebaseapp.com",
@@ -13,13 +11,10 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:15439604314:web:d1a9dafa88100a81750663"
     };
 
-    // Inizializza Firebase (controlla se è già attivo per non farlo due volte)
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
     const db = firebase.database();
-
-    // --- FINE CONFIGURAZIONE ---
 
     // --- LISTA GIOCATORI ---
     const players = {
@@ -43,18 +38,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const step3 = document.getElementById('step3');
     const resultDiv = document.getElementById('result');
 
-    // --- CARICAMENTO DATI INIZIALE ---
-    // Controlliamo se Firebase risponde
-    // Nota: Usiamo .ref('/') per testare la connessione alla radice o .ref('pairs')
+    // --- CARICAMENTO DATI ---
     db.ref('pairs').once('value').then(() => {
-        // Se arriviamo qui, Firebase ha risposto!
         if(loadingDiv) loadingDiv.style.display = 'none';
         if(gameContainer) gameContainer.style.display = 'block';
         initStep1();
     }, (error) => {
-        // Se c'è un errore di connessione
         console.error("Errore Firebase:", error);
-        alert("Errore di connessione al database: " + error.message);
+        alert("Errore di connessione: " + error.message);
     });
 
     function initStep1() {
@@ -66,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const selectPlayerMenu = document.createElement('select');
         selectPlayerMenu.id = 'playerSelect';
-        
         const defaultOption = document.createElement('option');
         defaultOption.text = "-- Chi sta giocando? --";
         defaultOption.value = "";
@@ -78,13 +68,11 @@ document.addEventListener('DOMContentLoaded', () => {
             option.value = nick;
             selectPlayerMenu.add(option);
         });
-
         step1.appendChild(selectPlayerMenu);
 
         selectPlayerMenu.addEventListener('change', (event) => {
             const selectedNick = event.target.value;
             if (selectedNick) {
-                // Prima di procedere, controlliamo se questo player ha già pescato!
                 checkIfPlayerAlreadyPlayed(selectedNick);
             }
         });
@@ -93,11 +81,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function checkIfPlayerAlreadyPlayed(nick) {
         db.ref('pairs/' + nick).once('value', (snapshot) => {
             if (snapshot.exists()) {
-                // Se ha già giocato, mostriamogli direttamente il suo risultato
                 const savedReceiver = snapshot.val();
                 showResult(nick, savedReceiver, true);
             } else {
-                // Se non ha giocato, vai allo step 2
                 showCharacters(nick);
             }
         });
@@ -130,12 +116,10 @@ document.addEventListener('DOMContentLoaded', () => {
             option.value = char;
             selectCharMenu.add(option);
         });
-
         step2.appendChild(selectCharMenu);
 
         const confirmBtn = document.createElement('button');
         confirmBtn.textContent = "Scopri il tuo abbinamento 🎁";
-        
         confirmBtn.onclick = () => {
             const selectedChar = selectCharMenu.value;
             if (selectedChar === "") {
@@ -144,23 +128,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 generatePairingOnline(nick, selectedChar);
             }
         };
-
         step2.appendChild(confirmBtn);
     }
-
     function generatePairingOnline(giverPlayer, giverChar) {
-        // Scarichiamo TUTTI gli abbinamenti attuali dal database per vedere chi è libero
         db.ref('pairs').once('value', (snapshot) => {
-            const currentPairs = snapshot.val() || {}; // Se è vuoto, usa oggetto vuoto
-            const takenReceivers = Object.values(currentPairs); // Lista di chi è già stato preso
+            const currentPairs = snapshot.val() || {}; 
+            const takenReceivers = Object.values(currentPairs); 
             
-            // Logica di filtro
             let receivers = allCharacters.filter(r => 
-                r !== giverChar && // Non se stesso
-                !takenReceivers.includes(r) // Non già preso
+                r !== giverChar && 
+                !takenReceivers.includes(r) 
             );
 
-            // Filtra personaggi dello stesso giocatore
             receivers = receivers.filter(r => {
                 const receiverPlayerName = Object.keys(players).find(p => players[p].includes(r));
                 return receiverPlayerName !== giverPlayer;
@@ -168,15 +147,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (receivers.length === 0) {
                 alert("Errore: Non ci sono pairing disponibili! Contatta l'admin.");
-                location.reload(); // Ricarica per sicurezza
+                location.reload(); 
                 return;
             }
 
-            // Estrazione
             const receiver = receivers[Math.floor(Math.random() * receivers.length)];
 
-            // SALVATAGGIO SU FIREBASE
-            // Salviamo sotto il nome del player (es. "Dany") -> "Nome Personaggio Estratto"
             db.ref('pairs/' + giverPlayer).set(receiver, (error) => {
                 if (error) {
                     alert('Errore di connessione!');
@@ -199,7 +175,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- FUNZIONI ADMIN ---
-    
     window.checkAdmin = function () {
         const pwd = document.getElementById('adminPassword').value;
         if (pwd === 'Dragonriders25!') {
