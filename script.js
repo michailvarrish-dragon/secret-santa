@@ -1,5 +1,30 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- LISTA GIOCATORI ---
+    
+    // --- 1. CONFIGURAZIONE FIREBASE ---
+    // Sostituisci tutto questo blocco con quello che hai copiato da Firebase
+    // Deve assomigliare a questo (ma con i tuoi codici):
+    const firebaseConfig = {
+      apiKey: "AIzaSyDtQSvMYX6lt4Px8ZhaCaFTSbGhLfi7dHk",
+      authDomain: "secretsantagdr.firebaseapp.com",
+      databaseURL: "https://secretsantagdr-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "secretsantagdr",
+      storageBucket: "secretsantagdr.firebasestorage.app",
+      messagingSenderId: "15439604314",
+      appId: "1:15439604314:web:d1a9dafa88100a81750663"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+    };
+
+    // Inizializza Firebase
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.database();
+
+    // --- FINE CONFIGURAZIONE ---
+
     const players = {
         "Dany 🦁": ["Charlie Ravengard", "Daphne Grimes", "Niara Blackthorne", "William Namari", "Arwan Frost", "Eoin Dasher"],
         "Hel 🌙": ["Caoimhe Tavis", "Jaime Fowler", "Licia Vargas", "Kieran Matthias", "Joakim Gillstead"],
@@ -12,66 +37,79 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const allCharacters = Object.values(players).flat();
-    const allPairsMap = {};
-
+    
+    // Elementi DOM
+    const loadingDiv = document.getElementById('loading');
+    const gameContainer = document.getElementById('game-container');
     const step1 = document.getElementById('step1');
     const step2 = document.getElementById('step2');
     const step3 = document.getElementById('step3');
     const resultDiv = document.getElementById('result');
 
-    // --- STEP 1: Menu a Tendina per i Player ---
-
-    // PULIZIA: Rimuove qualsiasi cosa ci sia in step1
-    step1.innerHTML = ''; 
-
-    // Titolo per lo step 1
-    const label1 = document.createElement('h3');
-    label1.textContent = "Step 1: Seleziona il tuo nickname";
-    label1.style.color = "white";
-    step1.appendChild(label1);
-
-    const selectPlayerMenu = document.createElement('select');
-    selectPlayerMenu.id = 'playerSelect';
-    
-    // Opzione di default
-    const defaultOption = document.createElement('option');
-    defaultOption.text = "-- Chi sta giocando? --";
-    defaultOption.value = "";
-    selectPlayerMenu.add(defaultOption);
-
-    // Riempimento menu player
-    Object.keys(players).forEach(nick => {
-        const option = document.createElement('option');
-        option.text = nick;
-        option.value = nick;
-        selectPlayerMenu.add(option);
+    // --- CARICAMENTO DATI INIZIALE ---
+    // Controlliamo se Firebase risponde
+    db.ref('pairs').once('value').then(() => {
+        loadingDiv.style.display = 'none';
+        gameContainer.style.display = 'block';
+        initStep1();
     });
 
-    step1.appendChild(selectPlayerMenu);
+    function initStep1() {
+        step1.innerHTML = ''; 
+        const label1 = document.createElement('h3');
+        label1.textContent = "Step 1: Seleziona il tuo nickname";
+        label1.style.color = "white";
+        step1.appendChild(label1);
 
-    selectPlayerMenu.addEventListener('change', (event) => {
-        const selectedNick = event.target.value;
-        if (selectedNick) {
-            showCharacters(selectedNick);
-        }
-    });
+        const selectPlayerMenu = document.createElement('select');
+        selectPlayerMenu.id = 'playerSelect';
+        
+        const defaultOption = document.createElement('option');
+        defaultOption.text = "-- Chi sta giocando? --";
+        defaultOption.value = "";
+        selectPlayerMenu.add(defaultOption);
 
-    // ------------------------------------------------
+        Object.keys(players).forEach(nick => {
+            const option = document.createElement('option');
+            option.text = nick;
+            option.value = nick;
+            selectPlayerMenu.add(option);
+        });
+
+        step1.appendChild(selectPlayerMenu);
+
+        selectPlayerMenu.addEventListener('change', (event) => {
+            const selectedNick = event.target.value;
+            if (selectedNick) {
+                // Prima di procedere, controlliamo se questo player ha già pescato!
+                checkIfPlayerAlreadyPlayed(selectedNick);
+            }
+        });
+    }
+
+    function checkIfPlayerAlreadyPlayed(nick) {
+        db.ref('pairs/' + nick).once('value', (snapshot) => {
+            if (snapshot.exists()) {
+                // Se ha già giocato, mostriamogli direttamente il suo risultato
+                const savedReceiver = snapshot.val();
+                showResult(nick, savedReceiver, true);
+            } else {
+                // Se non ha giocato, vai allo step 2
+                showCharacters(nick);
+            }
+        });
+    }
 
     function showCharacters(nick) {
         step1.style.display = 'none';
         step2.style.display = 'block';
         step2.innerHTML = ''; 
-        
-        // CENTRATURA
         step2.style.textAlign = 'center';
 
         const title = document.createElement('h2');
         title.textContent = `Ciao ${nick}, quale personaggio usi?`;
         title.style.color = "white"; 
         step2.appendChild(title);
-
-        // --- STEP 2: Menu a Tendina per i Personaggi ---
         
         const selectCharMenu = document.createElement('select');
         selectCharMenu.id = 'charSelect';
@@ -92,75 +130,115 @@ document.addEventListener('DOMContentLoaded', () => {
 
         step2.appendChild(selectCharMenu);
 
-        // --- Bottone di Conferma ---
         const confirmBtn = document.createElement('button');
         confirmBtn.textContent = "Scopri il tuo abbinamento 🎁";
         
         confirmBtn.onclick = () => {
             const selectedChar = selectCharMenu.value;
             if (selectedChar === "") {
-                alert("Per favore, seleziona un personaggio dal menu!");
+                alert("Per favore, seleziona un personaggio!");
             } else {
-                generatePairing(selectedChar);
+                generatePairingOnline(nick, selectedChar);
             }
         };
 
         step2.appendChild(confirmBtn);
     }
 
-    function generatePairing(giver) {
-        let receivers = allCharacters.filter(r => r !== giver && !Object.values(allPairsMap).includes(r));
-        const giverPlayer = Object.keys(players).find(p => players[p].includes(giver));
-        
-        receivers = receivers.filter(r => {
-            const receiverPlayer = Object.keys(players).find(p => players[p].includes(r));
-            return receiverPlayer !== giverPlayer;
-        });
+    function generatePairingOnline(giverPlayer, giverChar) {
+        // Scarichiamo TUTTI gli abbinamenti attuali dal database per vedere chi è libero
+        db.ref('pairs').once('value', (snapshot) => {
+            const currentPairs = snapshot.val() || {}; // Se è vuoto, usa oggetto vuoto
+            const takenReceivers = Object.values(currentPairs); // Lista di chi è già stato preso
+            
+            // Logica di filtro
+            let receivers = allCharacters.filter(r => 
+                r !== giverChar && // Non se stesso
+                !takenReceivers.includes(r) // Non già preso
+            );
 
+            // Filtra personaggi dello stesso giocatore
+            receivers = receivers.filter(r => {
+                const receiverPlayerName = Object.keys(players).find(p => players[p].includes(r));
+                return receiverPlayerName !== giverPlayer;
+            });
+
+            if (receivers.length === 0) {
+                alert("Errore: Non ci sono pairing disponibili! Contatta l'admin.");
+                location.reload(); // Ricarica per sicurezza
+                return;
+            }
+
+            // Estrazione
+            const receiver = receivers[Math.floor(Math.random() * receivers.length)];
+
+            // SALVATAGGIO SU FIREBASE
+            // Salviamo sotto il nome del player (es. "Dany") -> "Nome Personaggio Estratto"
+            db.ref('pairs/' + giverPlayer).set(receiver, (error) => {
+                if (error) {
+                    alert('Errore di connessione!');
+                } else {
+                    showResult(giverPlayer, receiver, false);
+                }
+            });
+        });
+    }
+
+    function showResult(giver, receiver, isReplay) {
+        step1.style.display = 'none';
         step2.style.display = 'none';
         step3.style.display = 'block';
         step3.style.textAlign = 'center'; 
 
-        if (receivers.length === 0) {
-            resultDiv.textContent = 'Nessun pairing disponibile. Riprova o contatta l\'admin.';
-            resultDiv.style.color = "white";
-        } else {
-            const receiver = receivers[Math.floor(Math.random() * receivers.length)];
-            allPairsMap[giver] = receiver;
-            // Risultato in BIANCO
-            resultDiv.innerHTML = `🎅 Il destinatario per <strong>${giver}</strong> è:<br><br><span style="font-size: 2em; color: white; text-shadow: 2px 2px 4px #000000;">${receiver}</span>`;
-        }
+        let msg = isReplay ? "Avevi già effettuato l'estrazione! 🎅" : "Nuova estrazione confermata! 🎅";
+        
+        resultDiv.innerHTML = `<p style="font-size:0.9em">${msg}</p>Il destinatario per <strong>${giver}</strong> è:<br><br><span style="font-size: 2em; color: white; text-shadow: 2px 2px 4px #000000;">${receiver}</span>`;
     }
 
-    // Le funzioni per l'admin devono essere globali (window.) perché chiamate dall'HTML
+    // --- FUNZIONI ADMIN ---
+    
     window.checkAdmin = function () {
         const pwd = document.getElementById('adminPassword').value;
         if (pwd === 'Dragonriders25!') {
             document.getElementById('adminPanel').style.display = 'block';
-            showAllPairs();
+            showAllPairsFromDB();
         } else {
             alert('Password errata!');
         }
     };
 
-    window.downloadCSV = function () {
-        if (Object.keys(allPairsMap).length < allCharacters.length) {
-            alert('Attenzione: Non tutti i personaggi sono stati ancora abbinati!');
+    function showAllPairsFromDB() {
+        db.ref('pairs').on('value', (snapshot) => {
+            const pairs = snapshot.val() || {};
+            const div = document.getElementById('allPairs');
+            div.innerHTML = '<ul>' + Object.entries(pairs).map(([giver, receiver]) => `<li>${giver} → ${receiver}</li>`).join('') + '</ul>';
+        });
+    }
+
+    window.resetDatabase = function() {
+        if(confirm("SEI SICURO? Questo cancellerà tutti gli abbinamenti fatti finora!")) {
+            db.ref('pairs').remove();
+            alert("Database resettato!");
+            location.reload();
         }
-        let csv = 'Giver,Receiver\n';
-        for (const [giver, receiver] of Object.entries(allPairsMap)) {
-            csv += `${giver},${receiver}\n`;
-        }
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'secret_santa_pairs.csv';
-        a.click();
     };
 
-    function showAllPairs() {
-        const div = document.getElementById('allPairs');
-        div.innerHTML = '<ul>' + Object.entries(allPairsMap).map(([giver, receiver]) => `<li>${giver} → ${receiver}</li>`).join('') + '</ul>';
-    }
+    window.downloadCSV = function () {
+        db.ref('pairs').once('value', (snapshot) => {
+            const pairs = snapshot.val() || {};
+            if (Object.keys(pairs).length < Object.keys(players).length) {
+                alert('Attenzione: Non tutti hanno ancora giocato!');
+            }
+            let csv = 'Giver,Receiver\n';
+            for (const [giver, receiver] of Object.entries(pairs)) {
+                csv += `${giver},${receiver}\n`;
+            }
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'secret_santa_pairs.csv';
+            a.click();
+        });
+    };
 });
