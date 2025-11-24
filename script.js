@@ -3,14 +3,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 1. CONFIGURAZIONE FIREBASE ---
     // Sostituisci tutto questo blocco con quello che hai copiato da Firebase
     // Deve assomigliare a questo (ma con i tuoi codici):
-    const firebaseConfig = {
-      apiKey: "AIzaSyDtQSvMYX6lt4Px8ZhaCaFTSbGhLfi7dHk",
-      authDomain: "secretsantagdr.firebaseapp.com",
-      databaseURL: "https://secretsantagdr-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "secretsantagdr",
-      storageBucket: "secretsantagdr.firebasestorage.app",
-      messagingSenderId: "15439604314",
-      appId: "1:15439604314:web:d1a9dafa88100a81750663"
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDtQSvMYX6lt4Px8ZhaCaFTSbGhLfi7dHk",
+  authDomain: "secretsantagdr.firebaseapp.com",
+  databaseURL: "https://secretsantagdr-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "secretsantagdr",
+  storageBucket: "secretsantagdr.firebasestorage.app",
+  messagingSenderId: "15439604314",
+  appId: "1:15439604314:web:d1a9dafa88100a81750663"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 };
 
 // Initialize Firebase
