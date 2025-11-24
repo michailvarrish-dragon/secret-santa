@@ -1,33 +1,19 @@
 document.addEventListener('DOMContentLoaded', () => {
     
     // --- 1. CONFIGURAZIONE FIREBASE ---
-    // Sostituisci tutto questo blocco con quello che hai copiato da Firebase
-    // Deve assomigliare a questo (ma con i tuoi codici):
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyDtQSvMYX6lt4Px8ZhaCaFTSbGhLfi7dHk",
-  authDomain: "secretsantagdr.firebaseapp.com",
-  databaseURL: "https://secretsantagdr-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "secretsantagdr",
-  storageBucket: "secretsantagdr.firebasestorage.app",
-  messagingSenderId: "15439604314",
-  appId: "1:15439604314:web:d1a9dafa88100a81750663"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+    
+    // I tuoi dati di configurazione (formattati corretti per il web classico)
+    const firebaseConfig = {
+        apiKey: "AIzaSyDtQSvMYX6lt4Px8ZhaCaFTSbGhLfi7dHk",
+        authDomain: "secretsantagdr.firebaseapp.com",
+        databaseURL: "https://secretsantagdr-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "secretsantagdr",
+        storageBucket: "secretsantagdr.firebasestorage.app",
+        messagingSenderId: "15439604314",
+        appId: "1:15439604314:web:d1a9dafa88100a81750663"
     };
 
-    // Inizializza Firebase
+    // Inizializza Firebase (controlla se è già attivo per non farlo due volte)
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
@@ -35,6 +21,7 @@ const app = initializeApp(firebaseConfig);
 
     // --- FINE CONFIGURAZIONE ---
 
+    // --- LISTA GIOCATORI ---
     const players = {
         "Dany 🦁": ["Charlie Ravengard", "Daphne Grimes", "Niara Blackthorne", "William Namari", "Arwan Frost", "Eoin Dasher"],
         "Hel 🌙": ["Caoimhe Tavis", "Jaime Fowler", "Licia Vargas", "Kieran Matthias", "Joakim Gillstead"],
@@ -58,10 +45,16 @@ const app = initializeApp(firebaseConfig);
 
     // --- CARICAMENTO DATI INIZIALE ---
     // Controlliamo se Firebase risponde
+    // Nota: Usiamo .ref('/') per testare la connessione alla radice o .ref('pairs')
     db.ref('pairs').once('value').then(() => {
-        loadingDiv.style.display = 'none';
-        gameContainer.style.display = 'block';
+        // Se arriviamo qui, Firebase ha risposto!
+        if(loadingDiv) loadingDiv.style.display = 'none';
+        if(gameContainer) gameContainer.style.display = 'block';
         initStep1();
+    }, (error) => {
+        // Se c'è un errore di connessione
+        console.error("Errore Firebase:", error);
+        alert("Errore di connessione al database: " + error.message);
     });
 
     function initStep1() {
@@ -122,133 +115,4 @@ const app = initializeApp(firebaseConfig);
         step2.appendChild(title);
         
         const selectCharMenu = document.createElement('select');
-        selectCharMenu.id = 'charSelect';
-        selectCharMenu.style.margin = '15px auto'; 
-        selectCharMenu.style.display = 'block'; 
-
-        const defaultCharOption = document.createElement('option');
-        defaultCharOption.text = "-- Seleziona Personaggio --";
-        defaultCharOption.value = "";
-        selectCharMenu.add(defaultCharOption);
-
-        players[nick].forEach(char => {
-            const option = document.createElement('option');
-            option.text = char;
-            option.value = char;
-            selectCharMenu.add(option);
-        });
-
-        step2.appendChild(selectCharMenu);
-
-        const confirmBtn = document.createElement('button');
-        confirmBtn.textContent = "Scopri il tuo abbinamento 🎁";
-        
-        confirmBtn.onclick = () => {
-            const selectedChar = selectCharMenu.value;
-            if (selectedChar === "") {
-                alert("Per favore, seleziona un personaggio!");
-            } else {
-                generatePairingOnline(nick, selectedChar);
-            }
-        };
-
-        step2.appendChild(confirmBtn);
-    }
-
-    function generatePairingOnline(giverPlayer, giverChar) {
-        // Scarichiamo TUTTI gli abbinamenti attuali dal database per vedere chi è libero
-        db.ref('pairs').once('value', (snapshot) => {
-            const currentPairs = snapshot.val() || {}; // Se è vuoto, usa oggetto vuoto
-            const takenReceivers = Object.values(currentPairs); // Lista di chi è già stato preso
-            
-            // Logica di filtro
-            let receivers = allCharacters.filter(r => 
-                r !== giverChar && // Non se stesso
-                !takenReceivers.includes(r) // Non già preso
-            );
-
-            // Filtra personaggi dello stesso giocatore
-            receivers = receivers.filter(r => {
-                const receiverPlayerName = Object.keys(players).find(p => players[p].includes(r));
-                return receiverPlayerName !== giverPlayer;
-            });
-
-            if (receivers.length === 0) {
-                alert("Errore: Non ci sono pairing disponibili! Contatta l'admin.");
-                location.reload(); // Ricarica per sicurezza
-                return;
-            }
-
-            // Estrazione
-            const receiver = receivers[Math.floor(Math.random() * receivers.length)];
-
-            // SALVATAGGIO SU FIREBASE
-            // Salviamo sotto il nome del player (es. "Dany") -> "Nome Personaggio Estratto"
-            db.ref('pairs/' + giverPlayer).set(receiver, (error) => {
-                if (error) {
-                    alert('Errore di connessione!');
-                } else {
-                    showResult(giverPlayer, receiver, false);
-                }
-            });
-        });
-    }
-
-    function showResult(giver, receiver, isReplay) {
-        step1.style.display = 'none';
-        step2.style.display = 'none';
-        step3.style.display = 'block';
-        step3.style.textAlign = 'center'; 
-
-        let msg = isReplay ? "Avevi già effettuato l'estrazione! 🎅" : "Nuova estrazione confermata! 🎅";
-        
-        resultDiv.innerHTML = `<p style="font-size:0.9em">${msg}</p>Il destinatario per <strong>${giver}</strong> è:<br><br><span style="font-size: 2em; color: white; text-shadow: 2px 2px 4px #000000;">${receiver}</span>`;
-    }
-
-    // --- FUNZIONI ADMIN ---
-    
-    window.checkAdmin = function () {
-        const pwd = document.getElementById('adminPassword').value;
-        if (pwd === 'Dragonriders25!') {
-            document.getElementById('adminPanel').style.display = 'block';
-            showAllPairsFromDB();
-        } else {
-            alert('Password errata!');
-        }
-    };
-
-    function showAllPairsFromDB() {
-        db.ref('pairs').on('value', (snapshot) => {
-            const pairs = snapshot.val() || {};
-            const div = document.getElementById('allPairs');
-            div.innerHTML = '<ul>' + Object.entries(pairs).map(([giver, receiver]) => `<li>${giver} → ${receiver}</li>`).join('') + '</ul>';
-        });
-    }
-
-    window.resetDatabase = function() {
-        if(confirm("SEI SICURO? Questo cancellerà tutti gli abbinamenti fatti finora!")) {
-            db.ref('pairs').remove();
-            alert("Database resettato!");
-            location.reload();
-        }
-    };
-
-    window.downloadCSV = function () {
-        db.ref('pairs').once('value', (snapshot) => {
-            const pairs = snapshot.val() || {};
-            if (Object.keys(pairs).length < Object.keys(players).length) {
-                alert('Attenzione: Non tutti hanno ancora giocato!');
-            }
-            let csv = 'Giver,Receiver\n';
-            for (const [giver, receiver] of Object.entries(pairs)) {
-                csv += `${giver},${receiver}\n`;
-            }
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'secret_santa_pairs.csv';
-            a.click();
-        });
-    };
-});
+        selectChar
