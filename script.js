@@ -18,14 +18,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- LISTA GIOCATORI ---
     const players = {
-        "Dany 🦁": ["Charlie Ravengard", "Daphne Grimes", "Niara Blackthorne", "William Namari", "Arwan Frost", "Eoin Dasher"],
-        "Hel 🌙": ["Caoimhe Tavis", "Jaime Fowler", "Licia Vargas", "Kieran Matthias", "Joakim Gillstead"],
-        "Aesir 🪼": ["Subaru Kazuki"],
+        "Dany 🦁": ["Arwan Frost", "Charlie Ravengard", "Daphne Grimes", "Enora Neilwart", "Eoin Dasher", "Niara Blackthorne", "William Namari"],
+        "Hel 🌙": ["Caoimhe Tavis", "Jaime Fowler", "Joakim Gillstead", "Licia Vargas", "Kieran Matthias"],
+        "Aesir 🪼": ["Jayden Nur", "Subaru Kazuki"],
         "Ash ✨": ["Lumiel Carr"],
         "Elle 🌷": ["Arthemis Namari", "Clover Veylaren"],
-        "Emma 📚": ["Elowen Roth", "Jos Varrish", "Riven Eraklyon", "Charles McQueen", "Manon Stirling"],
-        "Mirai ❤️": ["Kairos Antares", "Aaron Ravengard", "Layla Stirling"],
-        "Sere 🦄": ["Michaela Bjorg", "Tristan Vesper"]
+        "Emma 📚": ["Charles McQueen", "Elowen Roth", "Jos Varrish", "Manon Stirling", "Riven Eraklyon"],
+        "Kiri 💢": ["Bex Peng"]
+        "Mika 🐧": ["Amira Smith"]
+        "Mirai ❤️": ["Aaron Ravengard", "Kairos Antares", "Julian Neilwart", "Layla Stirling"],
     };
 
     const allCharacters = Object.values(players).flat();
