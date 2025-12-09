@@ -11,12 +11,13 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:15439604314:web:d1a9dafa88100a81750663"
     };
 
+    // Inizializza Firebase solo se non è già attivo
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
     const db = firebase.database();
 
-    // --- LISTA GIOCATORI ---
+    // --- LISTA GIOCATORI DEFINITIVA ---
     const players = {
         "Dany 🦁": ["Arwan Frost", "Charlie Ravengard", "Daphne Grimes", "Enora Neilwart", "Eoin Dasher", "Niara Blackthorne", "William Namari"],
         "Hel 🌙": ["Caoimhe Tavis", "Jaime Fowler", "Joakim Gillstead", "Licia Vargas", "Kieran Matthias"],
@@ -24,9 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
         "Ash ✨": ["Lumiel Carr"],
         "Elle 🌷": ["Arthemis Namari", "Clover Veylaren"],
         "Emma 📚": ["Charles McQueen", "Elowen Roth", "Jos Varrish", "Manon Stirling", "Riven Eraklyon"],
-        "Kiri 💢": ["Bex Peng"]
-        "Mika 🐧": ["Amira Smith"]
-        "Mirai ❤️": ["Aaron Ravengard", "Kairos Antares", "Julian Neilwart", "Layla Stirling"],
+        "Kiri 💢": ["Bex Peng"],
+        "Mika 🐧": ["Amira Smith"],
+        "Mirai ❤️": ["Aaron Ravengard", "Kairos Antares", "Julian Neilwart", "Layla Stirling"]
     };
 
     const allCharacters = Object.values(players).flat();
@@ -46,8 +47,9 @@ document.addEventListener('DOMContentLoaded', () => {
         initStep1();
     }, (error) => {
         console.error("Errore Firebase:", error);
-        alert("Errore di connessione: " + error.message);
+        alert("Errore di connessione al database: " + error.message);
     });
+        // --- LOGICA DEL GIOCO ---
 
     function initStep1() {
         step1.innerHTML = ''; 
@@ -58,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const selectPlayerMenu = document.createElement('select');
         selectPlayerMenu.id = 'playerSelect';
+        
         const defaultOption = document.createElement('option');
         defaultOption.text = "-- Chi sta giocando? --";
         defaultOption.value = "";
@@ -69,28 +72,24 @@ document.addEventListener('DOMContentLoaded', () => {
             option.value = nick;
             selectPlayerMenu.add(option);
         });
+
         step1.appendChild(selectPlayerMenu);
 
         selectPlayerMenu.addEventListener('change', (event) => {
             const selectedNick = event.target.value;
             if (selectedNick) {
-                // MODIFICA: Non controlliamo più qui se il player ha giocato.
-                // Passiamo direttamente alla scelta personaggio.
                 showCharacters(selectedNick);
             }
         });
     }
 
-    // Funzione NUOVA: controlla se il PERSONAGGIO specifico ha già giocato
+    // Controlla se il PERSONAGGIO ha già pescato
     function checkCharacterStatus(player, charName) {
-        // La chiave nel DB ora è il nome del personaggio, non del player
         db.ref('pairs/' + charName).once('value', (snapshot) => {
             if (snapshot.exists()) {
-                // Questo personaggio ha già un abbinamento
                 const savedReceiver = snapshot.val();
                 showResult(charName, savedReceiver, true);
             } else {
-                // Nessun abbinamento, procediamo a crearne uno nuovo
                 generatePairingOnline(player, charName);
             }
         });
@@ -123,31 +122,36 @@ document.addEventListener('DOMContentLoaded', () => {
             option.value = char;
             selectCharMenu.add(option);
         });
+
         step2.appendChild(selectCharMenu);
 
         const confirmBtn = document.createElement('button');
         confirmBtn.textContent = "Scopri il tuo abbinamento 🎁";
+        
         confirmBtn.onclick = () => {
             const selectedChar = selectCharMenu.value;
             if (selectedChar === "") {
                 alert("Per favore, seleziona un personaggio!");
             } else {
-                // MODIFICA: Qui scatta il controllo sul personaggio
                 checkCharacterStatus(nick, selectedChar);
             }
         };
+
         step2.appendChild(confirmBtn);
     }
+
     function generatePairingOnline(giverPlayer, giverChar) {
         db.ref('pairs').once('value', (snapshot) => {
             const currentPairs = snapshot.val() || {}; 
             const takenReceivers = Object.values(currentPairs); 
             
+            // Filtro: Escludi se stesso e chi è già stato preso
             let receivers = allCharacters.filter(r => 
                 r !== giverChar && 
                 !takenReceivers.includes(r) 
             );
 
+            // Filtro: Escludi personaggi dello stesso giocatore
             receivers = receivers.filter(r => {
                 const receiverPlayerName = Object.keys(players).find(p => players[p].includes(r));
                 return receiverPlayerName !== giverPlayer;
@@ -161,10 +165,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const receiver = receivers[Math.floor(Math.random() * receivers.length)];
 
-            // MODIFICA FONDAMENTALE: Salviamo usando il nome del PERSONAGGIO come chiave
+            // Salvataggio usando il NOME DEL PERSONAGGIO come chiave
             db.ref('pairs/' + giverChar).set(receiver, (error) => {
                 if (error) {
-                    alert('Errore di connessione!');
+                    alert('Errore di connessione nel salvataggio!');
                 } else {
                     showResult(giverChar, receiver, false);
                 }
@@ -180,11 +184,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let msg = isReplay ? "Avevi già effettuato l'estrazione con questo PG! 🎅" : "Nuova estrazione confermata! 🎅";
         
-        // Qui 'giverName' sarà il nome del personaggio (es. Charlie), non del player
         resultDiv.innerHTML = `<p style="font-size:0.9em">${msg}</p>Il destinatario per <strong>${giverName}</strong> è:<br><br><span style="font-size: 2em; color: white; text-shadow: 2px 2px 4px #000000;">${receiver}</span>`;
     }
 
     // --- FUNZIONI ADMIN ---
+    
     window.checkAdmin = function () {
         const pwd = document.getElementById('adminPassword').value;
         if (pwd === 'Dragonriders25!') {
@@ -198,7 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function showAllPairsFromDB() {
         db.ref('pairs').on('value', (snapshot) => {
             const pairs = snapshot.val() || {};
-            // Ora la lista mostrerà: "Nome Personaggio -> Nome Destinatario"
             const div = document.getElementById('allPairs');
             div.innerHTML = '<ul>' + Object.entries(pairs).map(([giver, receiver]) => `<li>${giver} → ${receiver}</li>`).join('') + '</ul>';
         });
@@ -215,9 +218,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.downloadCSV = function () {
         db.ref('pairs').once('value', (snapshot) => {
             const pairs = snapshot.val() || {};
-            // Nota: Questo controllo controlla se TUTTI i personaggi hanno giocato
-            if (Object.keys(pairs).length < allCharacters.length) {
-                alert('Attenzione: Non tutti i personaggi hanno ancora giocato!');
+            if (Object.keys(pairs).length === 0) {
+                alert('Nessun dato da scaricare!');
+                return;
             }
             let csv = 'Giver,Receiver\n';
             for (const [giver, receiver] of Object.entries(pairs)) {
